@@ -71,12 +71,15 @@ function Dashboard() {
       return;
     }
     const data = await withdrawMoney({ amount: amountNum }, token);
-    if (data.error) setMsg(data.error);
-    else {
-      setMsg(data.message);
+    if (data.error) {
+      setMsg(data.error);
+    } else if (data.newBalance !== undefined) {
+      setMsg(data.message || "Withdrawal successful.");
       setBalance(data.newBalance);
       setWithdrawAmount("");
       refreshTransactions();
+    } else {
+      setMsg("Unexpected error occurred during withdrawal.");
     }
   }
 
