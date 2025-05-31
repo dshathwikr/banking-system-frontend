@@ -18,7 +18,7 @@ This is a React-based frontend application for a banking system. It allows users
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/dshathwikr/banking-system-frontend.git
    cd banking-system-frontend
    ```
 
