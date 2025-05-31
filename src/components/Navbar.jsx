@@ -19,6 +19,9 @@ function Navbar() {
 
   return (
     <nav style={styles.navbar}>
+      <Link to="/" style={styles.link}>
+        Home
+      </Link>
       <Link to="/signup" style={styles.link}>
         Signup
       </Link>
