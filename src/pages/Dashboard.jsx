@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getAccountInfo,
   getBalance,
@@ -6,6 +7,7 @@ import {
   depositMoney,
   withdrawMoney,
 } from "../services/api";
+import "./Dashboard.css";
 
 function Dashboard() {
   const [account, setAccount] = useState(null);
@@ -15,13 +17,11 @@ function Dashboard() {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    if (!token) {
-      setMsg("Please login first.");
-      return;
-    }
+    if (!token) return;
 
     async function fetchData() {
       const accountData = await getAccountInfo(token);
@@ -39,6 +39,10 @@ function Dashboard() {
 
     fetchData();
   }, [token]);
+
+  useEffect(() => {
+    if (!token) navigate("/");
+  }, [token, navigate]);
 
   async function handleDeposit(e) {
     e.preventDefault();
@@ -83,178 +87,86 @@ function Dashboard() {
 
   function handleLogout() {
     localStorage.removeItem("token");
-    setMsg("You have been logged out.");
     setAccount(null);
     setBalance(null);
     setTransactions([]);
+    setMsg("");
+    navigate("/");
   }
 
-  const inputStyle = {
-    width: "100%",
-    padding: 5,
-    marginBottom: 10,
-    borderRadius: 0,
-    border: "1px solid #000",
-    fontSize: 16,
-    backgroundColor: "#fff",
-    color: "#000",
-  };
-
-  if (!token) return <p>Please login to view your dashboard.</p>;
-
   return (
-    <div
-      style={{
-        maxWidth: 600,
-        margin: "20px auto",
-        padding: 30,
-        border: "1px solid #000",
-        borderRadius: 0,
-        backgroundColor: "#fff",
-        color: "#000",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h2 style={{ marginBottom: 20 }}>Dashboard</h2>
-        <button
-          onClick={handleLogout}
-          style={{
-            backgroundColor: "#000",
-            color: "#fff",
-            padding: "5px 10px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
+    <div className="dashboard-container">
+      <div className="header">
+        <h2>Dashboard</h2>
+        <button onClick={handleLogout} className="logout-button">
           Logout
         </button>
       </div>
-      {msg && <p style={{ color: "#000", marginBottom: 20 }}>{msg}</p>}
-
+      {msg && <p className="message">{msg}</p>}
       {account && (
-        <>
-          <h3 style={{ marginBottom: 10 }}>Account Info</h3>
-          <p style={{ marginBottom: 5 }}>
+        <div className="account-info">
+          <h3>Account Info</h3>
+          <p>
             <strong>Account Holder:</strong> {account.accountHolderName}
           </p>
-          <p style={{ marginBottom: 5 }}>
+          <p>
             <strong>Email:</strong> {account.email}
           </p>
-          <p style={{ marginBottom: 5 }}>
+          <p>
             <strong>Account Type:</strong> {account.accountType}
           </p>
-          <p style={{ marginBottom: 20 }}>
+          <p>
             <strong>Account Number:</strong> {account.accountNumber}
           </p>
-        </>
+        </div>
       )}
-
-      <h3 style={{ marginBottom: 20 }}>
-        Balance: ${balance?.toFixed(2) ?? "Loading..."}
-      </h3>
-
-      <form onSubmit={handleDeposit} style={{ marginBottom: 30 }}>
-        <h4 style={{ marginBottom: 10 }}>Deposit Money</h4>
+      <h3>Balance: ${balance?.toFixed(2) ?? "Loading..."}</h3>
+      <form onSubmit={handleDeposit} className="transaction-form">
+        <h4>Deposit Money</h4>
         <input
           type="number"
           step="0.01"
           value={depositAmount}
           onChange={(e) => setDepositAmount(e.target.value)}
           placeholder="Amount"
-          style={inputStyle}
+          className="input"
         />
-        <button
-          type="submit"
-          style={{
-            backgroundColor: "#000",
-            color: "#fff",
-            padding: "10px 15px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
+        <button type="submit" className="button">
           Deposit
         </button>
       </form>
-
-      <form onSubmit={handleWithdraw} style={{ marginBottom: 30 }}>
-        <h4 style={{ marginBottom: 10 }}>Withdraw Money</h4>
+      <form onSubmit={handleWithdraw} className="transaction-form">
+        <h4>Withdraw Money</h4>
         <input
           type="number"
           step="0.01"
           value={withdrawAmount}
           onChange={(e) => setWithdrawAmount(e.target.value)}
           placeholder="Amount"
-          style={inputStyle}
+          className="input"
         />
-        <button
-          type="submit"
-          style={{
-            backgroundColor: "#000",
-            color: "#fff",
-            padding: "10px 15px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
+        <button type="submit" className="button">
           Withdraw
         </button>
       </form>
-
-      <h3 style={{ marginBottom: 20 }}>Transaction History</h3>
+      <h3>Transaction History</h3>
       {transactions.length === 0 ? (
         <p>No transactions found.</p>
       ) : (
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", color: "#000" }}
-        >
+        <table className="transaction-table">
           <thead>
             <tr>
-              <th
-                style={{
-                  borderBottom: "1px solid #000",
-                  textAlign: "left",
-                  paddingBottom: 10,
-                }}
-              >
-                Type
-              </th>
-              <th
-                style={{
-                  borderBottom: "1px solid #000",
-                  textAlign: "right",
-                  paddingBottom: 10,
-                }}
-              >
-                Amount
-              </th>
-              <th
-                style={{
-                  borderBottom: "1px solid #000",
-                  textAlign: "right",
-                  paddingBottom: 10,
-                }}
-              >
-                Date
-              </th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             {transactions.map((t, i) => (
               <tr key={i}>
-                <td style={{ padding: "10px 0" }}>{t.type}</td>
-                <td style={{ textAlign: "right", padding: "10px 0" }}>
-                  ${t.amount.toFixed(2)}
-                </td>
-                <td style={{ textAlign: "right", padding: "10px 0" }}>
-                  {new Date(t.timestamp).toLocaleString()}
-                </td>
+                <td>{t.type}</td>
+                <td>${t.amount.toFixed(2)}</td>
+                <td>{new Date(t.timestamp).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
