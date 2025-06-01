@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getAccountInfo,
@@ -20,82 +20,92 @@ function Dashboard() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    if (!token) return;
+  const showMessage = (text) => setMsg(text);
 
-    async function fetchData() {
-      const accountData = await getAccountInfo(token);
-      if (accountData.error) setMsg(accountData.error);
-      else setAccount(accountData);
+  const fetchData = useCallback(async () => {
+    try {
+      const [accountData, balanceData, transactionsData] = await Promise.all([
+        getAccountInfo(token),
+        getBalance(token),
+        getTransactionHistory(token),
+      ]);
 
-      const balanceData = await getBalance(token);
-      if (balanceData.error) setMsg(balanceData.error);
-      else setBalance(balanceData.balance);
-
-      const transactionsData = await getTransactionHistory(token);
-      if (transactionsData.error) setMsg(transactionsData.error);
-      else setTransactions(transactionsData);
+      if (accountData.error || balanceData.error || transactionsData.error) {
+        showMessage(
+          accountData.error || balanceData.error || transactionsData.error
+        );
+      } else {
+        setAccount(accountData);
+        setBalance(balanceData.balance);
+        setTransactions(transactionsData);
+      }
+    } catch {
+      showMessage("An error occurred while fetching data.");
     }
-
-    fetchData();
   }, [token]);
 
   useEffect(() => {
-    if (!token) navigate("/");
-  }, [token, navigate]);
+    if (!token) {
+      navigate("/");
+    } else {
+      fetchData();
+    }
+  }, [token, navigate, fetchData]);
 
-  async function handleDeposit(e) {
+  const refreshTransactions = async () => {
+    const data = await getTransactionHistory(token);
+    if (!data.error) {
+      setTransactions(data);
+    }
+  };
+
+  const handleAmount = (amount) => {
+    const value = parseFloat(amount);
+    if (isNaN(value) || value <= 0 || !Number.isInteger(value)) {
+      showMessage("Enter a valid integer amount.");
+      return null;
+    }
+    return value;
+  };
+
+  const handleDeposit = async (e) => {
     e.preventDefault();
     setMsg("");
-    const amountNum = parseFloat(depositAmount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setMsg("Enter a valid deposit amount.");
-      return;
-    }
-    const data = await depositMoney({ amount: amountNum }, token);
-    if (data.error) setMsg(data.error);
-    else {
-      setMsg(data.message);
-      setBalance(data.newBalance);
-      setDepositAmount("");
-      refreshTransactions();
-    }
-  }
+    const amount = handleAmount(depositAmount);
+    if (amount === null) return;
 
-  async function handleWithdraw(e) {
+    const res = await depositMoney({ amount }, token);
+    if (res.error) return showMessage(res.error);
+
+    setBalance(res.newBalance);
+    setDepositAmount("");
+    showMessage(res.message);
+    refreshTransactions();
+  };
+
+  const handleWithdraw = async (e) => {
     e.preventDefault();
     setMsg("");
-    const amountNum = parseFloat(withdrawAmount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setMsg("Enter a valid withdraw amount.");
-      return;
-    }
-    const data = await withdrawMoney({ amount: amountNum }, token);
-    if (data.error) {
-      setMsg(data.error);
-    } else if (data.newBalance !== undefined) {
-      setMsg(data.message || "Withdrawal successful.");
-      setBalance(data.newBalance);
+    const amount = handleAmount(withdrawAmount);
+    if (amount === null) return;
+
+    const res = await withdrawMoney({ amount }, token);
+    if (res.error) return showMessage(res.error);
+
+    if (res.newBalance !== undefined) {
+      setBalance(res.newBalance);
       setWithdrawAmount("");
+      showMessage(res.message || "Withdrawal successful.");
       refreshTransactions();
     } else {
-      setMsg("Unexpected error occurred during withdrawal.");
+      showMessage("Unexpected error occurred during withdrawal.");
     }
-  }
+  };
 
-  async function refreshTransactions() {
-    const data = await getTransactionHistory(token);
-    if (!data.error) setTransactions(data);
-  }
-
-  function handleLogout() {
+  const handleLogout = () => {
     localStorage.removeItem("token");
-    setAccount(null);
-    setBalance(null);
-    setTransactions([]);
-    setMsg("");
     navigate("/");
-  }
+  };
 
   return (
     <div className="dashboard-container">
@@ -105,7 +115,9 @@ function Dashboard() {
           Logout
         </button>
       </div>
+
       {msg && <p className="message">{msg}</p>}
+
       {account && (
         <div className="account-info">
           <h3>Account Info</h3>
@@ -123,35 +135,43 @@ function Dashboard() {
           </p>
         </div>
       )}
-      <h3>Balance: ${balance?.toFixed(2) ?? "Loading..."}</h3>
+
+      <h3>Balance: ${balance !== null ? parseInt(balance) : "Loading..."}</h3>
+
       <form onSubmit={handleDeposit} className="transaction-form">
         <h4>Deposit Money</h4>
         <input
           type="number"
-          step="0.01"
+          step="1"
+          min="1"
           value={depositAmount}
           onChange={(e) => setDepositAmount(e.target.value)}
-          placeholder="Amount"
+          placeholder="Enter Amount"
           className="input"
+          required
         />
         <button type="submit" className="button">
           Deposit
         </button>
       </form>
+
       <form onSubmit={handleWithdraw} className="transaction-form">
         <h4>Withdraw Money</h4>
         <input
           type="number"
-          step="0.01"
+          step="1"
+          min="1"
           value={withdrawAmount}
           onChange={(e) => setWithdrawAmount(e.target.value)}
-          placeholder="Amount"
+          placeholder="Enter Amount"
           className="input"
+          required
         />
         <button type="submit" className="button">
           Withdraw
         </button>
       </form>
+
       <h3>Transaction History</h3>
       {transactions.length === 0 ? (
         <p>No transactions found.</p>
@@ -165,10 +185,10 @@ function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {transactions.map((t, i) => (
-              <tr key={i}>
+            {[...transactions].reverse().map((t, index) => (
+              <tr key={index}>
                 <td>{t.type}</td>
-                <td>${t.amount.toFixed(2)}</td>
+                <td>${parseInt(t.amount)}</td>
                 <td>{new Date(t.timestamp).toLocaleString()}</td>
               </tr>
             ))}
