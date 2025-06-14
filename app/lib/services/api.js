@@ -1,4 +1,4 @@
-const URL = import.meta.env.VITE_BACKEND_URL;
+const URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function apiRequest(endpoint, body = {}, method = "POST", token = null) {
   const headers = {

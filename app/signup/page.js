@@ -1,6 +1,8 @@
+"use client";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { signup } from "../services/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signup } from "../lib/services/api.js";
 import "./Signup.css";
 
 function Signup() {
@@ -12,7 +14,7 @@ function Signup() {
   });
 
   const [msg, setMsg] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -30,7 +32,7 @@ function Signup() {
       setMsg(response.error);
     } else {
       setMsg(`Account Number: ${response.accountNumber}`);
-      setTimeout(() => navigate("/signin"), 2000);
+      setTimeout(() => router.push("/signin"), 2000);
     }
   }
 
@@ -81,7 +83,7 @@ function Signup() {
       </form>
       {msg && <p className="message">{msg}</p>}
       <p className="signin-link">
-        Already have an account? <Link to="/signin">Sign In</Link>
+        Already have an account? <Link href="/signin">Sign In</Link>
       </p>
     </div>
   );

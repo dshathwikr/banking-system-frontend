@@ -1,12 +1,14 @@
+"use client";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { login } from "../services/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { login } from "../lib/services/api.js";
 import "./Signin.css";
 
 function Signin() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [msg, setMsg] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -20,9 +22,11 @@ function Signin() {
     if (response.error) {
       setMsg(response.error);
     } else if (response.token) {
-      localStorage.setItem("token", response.token);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", response.token);
+      }
       setMsg("Welcome back! Redirecting...");
-      navigate("/dashboard");
+      router.push("/dashboard");
     } else {
       setMsg("Login successful, but no token received.");
     }
@@ -56,7 +60,7 @@ function Signin() {
       </form>
       {msg && <p className="message">{msg}</p>}
       <p className="signup-link">
-        Don't have an account? <Link to="/signup">Sign Up</Link>
+        Don't have an account? <Link href="/signup">Sign Up</Link>
       </p>
     </div>
   );

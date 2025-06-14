@@ -1,12 +1,13 @@
+"use client";
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import {
   getAccountInfo,
   getBalance,
   getTransactionHistory,
   depositMoney,
   withdrawMoney,
-} from "../services/api";
+} from "../lib/services/api.js";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -17,8 +18,8 @@ function Dashboard() {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const router = useRouter();
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const showMessage = (text) => setMsg(text);
 
@@ -46,11 +47,11 @@ function Dashboard() {
 
   useEffect(() => {
     if (!token) {
-      navigate("/");
+      router.push("/");
     } else {
       fetchData();
     }
-  }, [token, navigate, fetchData]);
+  }, [token, router, fetchData]);
 
   const refreshTransactions = async () => {
     const data = await getTransactionHistory(token);
@@ -103,8 +104,10 @@ function Dashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+    }
+    router.push("/");
   };
 
   return (
